@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -56,5 +57,31 @@ func (c *Client) FetchPokemon(name string) (Pokemon, error) {
 	if err != nil {
 		return Pokemon{}, err
 	}
+
+	for i, pokemonType := range pokemon.Types {
+		typeURL := fmt.Sprintf("%s/type/%s", c.baseUrl, pokemonType.Details.Name)
+		typeDetails, err := c.fetchTypeDetails(typeURL)
+		if err != nil {
+			log.Printf("Error fetching type details for %s: %v", pokemonType.Details.Name, err)
+			continue
+		}
+		pokemon.Types[i].Details = *typeDetails
+	}
+
 	return pokemon, nil
+}
+
+func (c *Client) fetchTypeDetails(typeURL string) (*TypeDetail, error) {
+	data, err := c.fetchFromCacheOrAPI(typeURL)
+	if err != nil {
+		return nil, err
+	}
+
+	var typeDetails TypeDetail
+	err = json.Unmarshal(data, &typeDetails)
+	if err != nil {
+		return nil, err
+	}
+
+	return &typeDetails, nil
 }

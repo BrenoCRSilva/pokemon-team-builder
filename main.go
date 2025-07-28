@@ -2,194 +2,114 @@ package main
 
 import (
 	"bytes"
-	"image/color"
 	"log"
-	"strings"
 
 	"github.com/BrenoCRSilva/pokemon-team-builder/api"
+	"github.com/BrenoCRSilva/pokemon-team-builder/game"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
-type Game struct {
-	img              *ebiten.Image
-	runes            []rune
-	text             string
-	counter          int
-	api              *api.Client
-	fontFace         *text.GoTextFace
-	pokemon          *api.Pokemon
-	spriteLoaded     bool
-	draggable        bool
-	sprite           *ebiten.Image
-	spriteX, spriteY float64
-	offsetX, offsetY float64
-	mouseX, mouseY   float64
-}
-
-func (g *Game) Update() error {
-	g.runes = ebiten.AppendInputChars(g.runes[:0])
-	g.text += string(g.runes)
-	mouseX, mouseY := ebiten.CursorPosition()
-	g.mouseX, g.mouseY = float64(mouseX), float64(mouseY)
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		if !g.draggable {
-			if g.mouseX <= g.spriteX+float64(g.sprite.Bounds().Dx()) &&
-				g.mouseX >= g.spriteX &&
-				g.mouseY <= g.spriteY+float64(g.sprite.Bounds().Dy()) &&
-				g.mouseY >= g.spriteY {
-				g.draggable = true
-				g.offsetX = float64(mouseX) - g.spriteX
-				g.offsetY = float64(mouseY) - g.spriteY
-				log.Printf(
-					"Draggable: %v, OffsetX: %f, OffsetY: %f, MouseX: %d, MouseY: %d, SpriteX: %f, SpriteY: %f",
-					g.draggable,
-					g.offsetX,
-					g.offsetY,
-					g.mouseX,
-					g.mouseY,
-					g.spriteX,
-					g.spriteY,
-				)
-			}
-		}
-		if g.draggable {
-			g.spriteX = float64(mouseX) - g.offsetX
-			g.spriteY = float64(mouseY) - g.offsetY
-		}
-	} else {
-		g.draggable = false
-	}
-
-	check := strings.Split(g.text, " ")
-	if len(check) > 1 {
-		g.text = check[0]
-	}
-
-	if repeatingKeyPressed(ebiten.KeyBackspace) {
-		if len(g.text) >= 1 {
-			g.text = g.text[:len(g.text)-1]
-		}
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-		g.spriteLoaded = false
-
-		pokemon, err := g.api.FetchPokemon(g.text)
-		if err != nil {
-			log.Printf("Error fetching Pokemon: %v", err)
-			return nil
-		}
-
-		g.pokemon = &pokemon
-		g.text = ""
-
-		if g.pokemon.Sprites.FrontDefault != "" {
-			sprite, err := ebitenutil.NewImageFromURL(g.pokemon.Sprites.FrontDefault)
-			if err != nil {
-				log.Printf("Error loading Pokemon sprite: %v", err)
-			} else {
-				g.sprite = sprite
-				g.spriteLoaded = true
-			}
-		}
-
-	}
-
-	g.counter++
-	return nil
-}
-
-func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.RGBA{240, 248, 255, 255}) // Light blue background
-
-	// Grid configuration
-	cols := 2
-	rows := 3
-	gridStartX := 20
-	gridStartY := 300
-	gridWidth := 400
-	gridHeight := 600
-
-	// Calculate slot dimensions
-	slotWidth := (gridWidth - (cols+1)*10) / cols
-	slotHeight := (gridHeight - (rows+1)*10) / rows
-
-	for i := 0; i < 6; i++ {
-		col := i % cols
-		row := i / cols
-
-		x := gridStartX + col*(slotWidth+10) + 10
-		y := gridStartY + row*(slotHeight+10) + 10
-
-		// Compute scaling factors
-		imgW, imgH := g.img.Bounds().Dx(), g.img.Bounds().Dy()
-		scaleX := float64(slotWidth) / float64(imgW)
-		scaleY := float64(slotHeight) / float64(imgH)
-
-		// Optionally preserve aspect ratio
-		scale := min(scaleX, scaleY)
-
-		// Center the image inside the slot
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(scale, scale)
-
-		imgDrawW := float64(imgW) * scale
-		imgDrawH := float64(imgH) * scale
-
-		offsetX := float64(x) + float64(slotWidth)/2 - imgDrawW/2
-		offsetY := float64(y) + float64(slotHeight)/2 - imgDrawH/2
-		op.GeoM.Translate(offsetX, offsetY)
-
-		screen.DrawImage(g.img, op)
-	}
-
-	t := g.text
-	if g.counter%60 < 30 {
-		t += "_"
-	}
-
-	opts := &text.DrawOptions{}
-	opts.GeoM.Translate(float64(gridWidth+100), 40)          // Position text at the bottom left
-	opts.ColorScale.ScaleWithColor(color.RGBA{0, 0, 0, 255}) // Black text
-	text.Draw(screen, t, g.fontFace, opts)
-
-	if g.spriteLoaded && g.sprite != nil {
-		spriteW, spriteH := g.sprite.Bounds().Dx(), g.sprite.Bounds().Dy()
-		scalex := float64(200) / float64(spriteW)
-		scaley := float64(200) / float64(spriteH)
-		scale := min(scalex, scaley)
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(scale, scale)
-		op.GeoM.Translate(g.spriteX, g.spriteY) // Apply draggable position
-		screen.DrawImage(g.sprite, op)
-	}
-}
-
-func repeatingKeyPressed(key ebiten.Key) bool {
-	const (
-		delay    = 30
-		interval = 3
-	)
-	d := inpututil.KeyPressDuration(key)
-	if d == 1 {
-		return true
-	}
-	if d >= delay && (d-delay)%interval == 0 {
-		return true
-	}
-	return false
-}
-
-func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return 1200, 900
-}
-
 func main() {
+	bar, _, err := ebitenutil.NewImageFromFile("./assets/searchbar.png")
+	if err != nil {
+		log.Fatal(err)
+	}
 	img, _, err := ebitenutil.NewImageFromFile("./assets/pokeball.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	normal, _, err := ebitenutil.NewImageFromFile("./assets/normal.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fire, _, err := ebitenutil.NewImageFromFile("./assets/fire.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	water, _, err := ebitenutil.NewImageFromFile("./assets/water.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	electric, _, err := ebitenutil.NewImageFromFile("./assets/electric.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	grass, _, err := ebitenutil.NewImageFromFile("./assets/grass.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ice, _, err := ebitenutil.NewImageFromFile("./assets/ice.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fighting, _, err := ebitenutil.NewImageFromFile("./assets/fighting.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	poison, _, err := ebitenutil.NewImageFromFile("./assets/poison.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ground, _, err := ebitenutil.NewImageFromFile("./assets/ground.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	flying, _, err := ebitenutil.NewImageFromFile("./assets/flying.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	psychic, _, err := ebitenutil.NewImageFromFile("./assets/psychic.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bug, _, err := ebitenutil.NewImageFromFile("./assets/bug.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rock, _, err := ebitenutil.NewImageFromFile("./assets/rock.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ghost, _, err := ebitenutil.NewImageFromFile("./assets/ghost.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dragon, _, err := ebitenutil.NewImageFromFile("./assets/dragon.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dark, _, err := ebitenutil.NewImageFromFile("./assets/dark.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	steel, _, err := ebitenutil.NewImageFromFile("./assets/steel.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fairy, _, err := ebitenutil.NewImageFromFile("./assets/fairy.png")
+	if err != nil {
+		log.Fatal(err)
+	}
 	fontSource, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	client := api.NewClient(5 * 60 * 1000) // Cache for 5 minutes
 	if err != nil {
@@ -199,16 +119,75 @@ func main() {
 		Source: fontSource,
 		Size:   24,
 	}
+	fontFace12 := &text.GoTextFace{
+		Source: fontSource,
+		Size:   12,
+	}
+	fontFace16 := &text.GoTextFace{
+		Source: fontSource,
+		Size:   16,
+	}
+	fontFace30 := &text.GoTextFace{
+		Source: fontSource,
+		Size:   34,
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
+	resistances := &game.TeamResistances{
+		"fire":     0,
+		"water":    0,
+		"grass":    0,
+		"electric": 0,
+		"ice":      0,
+		"fighting": 0,
+		"poison":   0,
+		"ground":   0,
+		"flying":   0,
+		"psychic":  0,
+		"bug":      0,
+		"rock":     0,
+		"ghost":    0,
+		"dragon":   0,
+		"dark":     0,
+		"steel":    0,
+		"fairy":    0,
+		"normal":   0,
+	}
+	grid := game.NewSlotGrid(2, 3, 40, 80, 400, 600, 10)
 	ebiten.SetWindowSize(1200, 900)
 	ebiten.SetWindowTitle("Pokemon Team Builder")
-
-	game := &Game{
-		img:      img,
-		fontFace: fontFace,
-		api:      client,
+	typeChart := game.TypeChart{
+		"fire":     fire,
+		"water":    water,
+		"grass":    grass,
+		"electric": electric,
+		"ice":      ice,
+		"fighting": fighting,
+		"poison":   poison,
+		"ground":   ground,
+		"flying":   flying,
+		"psychic":  psychic,
+		"bug":      bug,
+		"rock":     rock,
+		"ghost":    ghost,
+		"dragon":   dragon,
+		"dark":     dark,
+		"steel":    steel,
+		"fairy":    fairy,
+		"normal":   normal,
+	}
+	game := &game.Game{
+		TypeChart:       typeChart,
+		TeamResistances: resistances,
+		Bar:             bar,
+		Grid:            grid,
+		Img:             img,
+		FontFace:        fontFace,
+		FontFace12:      fontFace12,
+		FontFace16:      fontFace16,
+		FontFace30:      fontFace30,
+		Api:             client,
 	}
 
 	if err := ebiten.RunGame(game); err != nil {

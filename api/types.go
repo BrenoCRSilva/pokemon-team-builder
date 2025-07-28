@@ -30,7 +30,7 @@ type StatDetail struct {
 }
 
 type PokemonType struct {
-	Type TypeDetail `json:"type"`
+	Details TypeDetail `json:"type"`
 }
 
 type TypeDetail struct {
