@@ -13,6 +13,7 @@ type Game struct {
 	TypeChartGrid   TypeChartGrid
 	Grid            *SlotGrid
 	Img             *ebiten.Image
+	Title           *ebiten.Image
 	Bar             *ebiten.Image
 	Runes           []rune
 	Text            string

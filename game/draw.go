@@ -37,6 +37,17 @@ func (g *Game) DrawSearchBar(screen *ebiten.Image) {
 	screen.DrawImage(g.Bar, op)
 }
 
+func (g *Game) DrawTitle(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(0.12, 0.12)
+	op.GeoM.Translate(430, 6)
+	tOpts := &text.DrawOptions{}
+	tOpts.GeoM.Translate(605, 30)
+	tOpts.ColorScale.ScaleWithColor(color.RGBA{R: 255, G: 204, B: 0, A: 255})
+	screen.DrawImage(g.Title, op)
+	text.Draw(screen, "  Team Builder", g.FontFace, tOpts)
+}
+
 func (g *Game) drawCoverageScore(screen *ebiten.Image) {
 	scoreText := "Coverage Score"
 	x := (GRID_COLS)*g.TypeChartGrid.cellWidth + TEXT_CELL_WIDTH + 50

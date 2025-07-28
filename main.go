@@ -13,6 +13,10 @@ import (
 )
 
 func main() {
+	title, _, err := ebitenutil.NewImageFromFile("./assets/title.png")
+	if err != nil {
+		log.Fatal(err)
+	}
 	bar, _, err := ebitenutil.NewImageFromFile("./assets/searchbar.png")
 	if err != nil {
 		log.Fatal(err)
@@ -111,7 +115,7 @@ func main() {
 		log.Fatal(err)
 	}
 	fontSource, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
-	client := api.NewClient(5 * 60 * 1000) // Cache for 5 minutes
+	client := api.NewClient(5 * 60 * 1000)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -156,7 +160,7 @@ func main() {
 	}
 	grid := game.NewSlotGrid(2, 3, 40, 80, 400, 600, 10)
 	ebiten.SetWindowSize(1200, 900)
-	ebiten.SetWindowTitle("Pokemon Team Builder")
+	ebiten.SetWindowTitle("Boot.dev Hackathon")
 	typeChart := game.TypeChart{
 		"fire":     fire,
 		"water":    water,
@@ -181,6 +185,7 @@ func main() {
 		TypeChart:       typeChart,
 		TeamResistances: resistances,
 		Bar:             bar,
+		Title:           title,
 		Grid:            grid,
 		Img:             img,
 		FontFace:        fontFace,

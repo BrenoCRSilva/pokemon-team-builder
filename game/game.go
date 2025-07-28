@@ -384,6 +384,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{40, 56, 112, 1})
 	g.DrawSearchBar(screen)
 	g.DrawSearchBarText(screen)
+	g.DrawTitle(screen)
 	g.Grid.Draw(screen)
 	g.DrawInfoBackground(screen)
 	g.DrawInfoWindow(screen)
