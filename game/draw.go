@@ -37,6 +37,19 @@ func (g *Game) DrawSearchBar(screen *ebiten.Image) {
 	screen.DrawImage(g.Bar, op)
 }
 
+func (g *Game) drawCoverageScore(screen *ebiten.Image) {
+	scoreText := "Coverage Score"
+	x := (GRID_COLS)*g.TypeChartGrid.cellWidth + TEXT_CELL_WIDTH + 50
+	percentage := g.CoverageScore * 100
+	opts := &text.DrawOptions{}
+	opts.GeoM.Translate(float64(x), 730)
+	opts.ColorScale.ScaleWithColor(color.RGBA{255, 255, 255, 255})
+	opts2 := &text.DrawOptions{}
+	opts2.GeoM.Translate(float64(x)+40, 770)
+	text.Draw(screen, scoreText, g.FontFace16, opts)
+	text.Draw(screen, strconv.Itoa(int(percentage))+"%", g.FontFace30, opts2)
+}
+
 func (g *Game) DrawSearchBarText(screen *ebiten.Image) {
 	t := g.Text
 	if g.Counter%60 < 30 {
@@ -124,7 +137,7 @@ func (g *Game) drawTop30(screen *ebiten.Image) {
 
 	top30 := []int{96, 107, 95, 95, 92, 95}
 
-	baseX := g.ogX + 250 + 200 // adjust the +100 for spacing between columns
+	baseX := g.ogX + 250 + 200
 	baseY := g.ogY + 340
 
 	titleOpts := &text.DrawOptions{}

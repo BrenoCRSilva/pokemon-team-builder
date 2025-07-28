@@ -24,6 +24,8 @@ type Game struct {
 	FontFace30      *text.GoTextFace
 	CurrentPokemon  *api.Pokemon
 	NotFound        bool
+	CoverageScore   float64
+	Rescore         bool
 	MouseX, MouseY  float64
 }
 

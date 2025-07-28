@@ -104,7 +104,6 @@ func (g *Game) DragSprite() {
 		if g.isDragging {
 			for i := range g.Grid.Slots {
 				if g.isInsideSlot(i) {
-					log.Printf("Sprite is inside slot %d", i)
 				}
 			}
 			g.spriteX = float64(mouseX) - g.offsetX
@@ -135,7 +134,7 @@ func (g *Game) DragSprite() {
 			}
 
 			if !dropped {
-				g.spriteX = g.ogX + 30
+				g.spriteX = g.ogX + 60
 				g.spriteY = g.ogY + 30
 			}
 		}
@@ -211,11 +210,9 @@ func NewSlotGrid(cols, rows, startX, startY, gridW, gridH, spacing int) *SlotGri
 		Set:     make(map[string]bool),
 	}
 
-	// Calculate slot dimensions
 	slotWidth := (gridW - (cols+1)*spacing) / cols
 	slotHeight := (gridH - (rows+1)*spacing) / rows
 
-	// Initialize all slots
 	for i := 0; i < len(grid.Slots); i++ {
 		col := i % cols
 		row := i / cols
@@ -246,31 +243,20 @@ func (sg *SlotGrid) SetSlotImage(slotIndex int, img *ebiten.Image) {
 		imgW, imgH := img.Bounds().Dx(), img.Bounds().Dy()
 		scaleX := float64(slot.Width) / float64(imgW)
 		scaleY := float64(slot.Height) / float64(imgH)
-		slot.Scale = min(scaleX, scaleY) // Preserve aspect ratio
+		slot.Scale = min(scaleX, scaleY)
 	}
 }
 
-func (g *Game) recalculateAllResistances() {
+func (g *Game) resetResistances() {
 	for key := range *g.TeamResistances {
 		(*g.TeamResistances)[key] = 0
-	}
-
-	for i := range g.Grid.Slots {
-		if g.Grid.Slots[i].Pokemon != nil && g.Grid.Slots[i].slotted {
-			g.getTeamResistances(i)
-		}
 	}
 }
 
 func (g *Game) getTeamResistances(i int) {
-	log.Printf("Calculating resistances for slot %d", i)
-
 	if g.Grid.Slots[i].Pokemon == nil {
-		log.Printf("Pokemon is nil for slot %d", i)
 		return
 	}
-
-	log.Printf("Pokemon has %d types", len(g.Grid.Slots[i].Pokemon.Types))
 
 	for _, typing := range g.Grid.Slots[i].Pokemon.Types {
 		for _, half := range typing.Details.DamageRelations.HalfDamageFrom {
@@ -292,11 +278,30 @@ func (g *Game) getTeamResistances(i int) {
 	}
 }
 
+func (g *Game) getCoverageScore() {
+	var coverageSum float64
+	var members int
+	for _, value := range *g.TeamResistances {
+		coverageSum += value
+	}
+	for i := range g.Grid.Slots {
+		if g.Grid.Slots[i].Pokemon != nil {
+			members++
+		}
+	}
+
+	coverageScore := coverageSum / float64(members*4)
+	if math.IsInf(coverageScore, 0) || math.IsNaN(coverageScore) {
+		coverageScore = 0
+	}
+	g.CoverageScore = coverageScore
+}
+
 func (sg *SlotGrid) Draw(screen *ebiten.Image) {
 	options := &ebiten.DrawImageOptions{}
 	backgroundImage := ebiten.NewImage(sg.Width, sg.Height)
-	backgroundImage.Fill(color.RGBA{20, 27, 55, 1})                // Fill with lighter blue
-	options.GeoM.Translate(float64(sg.StartX), float64(sg.StartY)) // Position the background
+	backgroundImage.Fill(color.RGBA{20, 27, 55, 1})
+	options.GeoM.Translate(float64(sg.StartX), float64(sg.StartY))
 	screen.DrawImage(backgroundImage, options)
 
 	for i := range sg.Slots {
@@ -325,32 +330,45 @@ func (g *Game) Update() error {
 	g.SearchPokemon()
 	g.DragSprite()
 	g.DeleteSlotted()
+
 	for i := range g.Grid.Slots {
 		if g.Grid.Slots[i].Pokemon == nil && g.Grid.Slots[i].Image == nil {
 			g.Grid.SetSlotImage(i, g.Img)
 		} else if !g.Grid.Slots[i].slotted && g.Grid.Slots[i].Pokemon != nil {
 			sprite, err := GetSprite(g.Grid.Slots[i].Pokemon)
-			g.getTeamResistances(i)
 			if err != nil {
 				log.Printf("Error getting sprite: %v", err)
 			}
 			g.Grid.SetSlotImage(i, sprite)
 			g.Grid.Slots[i].slotted = true
+			g.Rescore = true
 		} else if g.Grid.Slots[i].changed {
 			if g.Grid.Slots[i].Pokemon == nil {
 				g.Grid.SetSlotImage(i, g.Img)
 				g.Grid.Slots[i].slotted = false
-				g.recalculateAllResistances()
+				g.Grid.Slots[i].changed = false
+				g.Rescore = true
 				continue
 			}
-			g.recalculateAllResistances()
 			sprite, err := GetSprite(g.Grid.Slots[i].Pokemon)
 			if err != nil {
 				log.Printf("Error getting sprite: %v", err)
 			}
 			g.Grid.SetSlotImage(i, sprite)
 			g.Grid.Slots[i].changed = false
+			g.Rescore = true
 		}
+	}
+
+	if g.Rescore {
+		g.resetResistances()
+		for i := range g.Grid.Slots {
+			if g.Grid.Slots[i].Pokemon != nil {
+				g.getTeamResistances(i)
+			}
+		}
+		g.getCoverageScore()
+		g.Rescore = false
 	}
 
 	g.Counter++
@@ -375,6 +393,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.drawStats(screen)
 	g.drawTop30(screen)
 	g.drawAbilities(screen)
+	g.drawCoverageScore(screen)
 	g.drawTypeChart(screen)
 	if g.NotFound {
 		g.drawNotFound(screen)
