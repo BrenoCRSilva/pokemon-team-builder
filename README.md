@@ -18,16 +18,16 @@ A powerful and intuitive Pokemon team building tool built with Go and Ebitengine
 <!-- Add your screenshots here -->
 
 ### Main Interface
-![Main Interface](screenshots/main-interface.png)
+![Main Interface](assets/main-interface.png)
 
 ### Team Building
-![Team Building](screenshots/team-building.png)
+![Team Building](assets/team-building.png)
 
 ### Coverage Analysis
-![Coverage Analysis](screenshots/coverage-analysis.png)
+![Coverage Analysis](assets/coverage-analysis.png)
 
 ### Stat Comparison
-![Stat Comparison](screenshots/stat-comparison.png)
+![Stat Comparison](assets/stat-comparison.png)
 
 ## Prerequisites
 
