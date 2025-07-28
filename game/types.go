@@ -19,17 +19,19 @@ type Game struct {
 	Text            string
 	Counter         int
 	Api             *api.Client
-	FontFace        *text.GoTextFace
-	FontFace12      *text.GoTextFace
-	FontFace16      *text.GoTextFace
-	FontFace30      *text.GoTextFace
+	Fonts           *Fonts
 	CurrentPokemon  *api.Pokemon
 	NotFound        bool
 	CoverageScore   float64
 	Rescore         bool
 	MouseX, MouseY  float64
 }
-
+type Fonts struct {
+	FontFace12 *text.GoTextFace
+	FontFace16 *text.GoTextFace
+	FontFace24 *text.GoTextFace
+	FontFace34 *text.GoTextFace
+}
 type Sprite struct {
 	sprite           *ebiten.Image
 	spriteLoaded     bool

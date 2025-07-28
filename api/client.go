@@ -11,12 +11,6 @@ import (
 	"github.com/BrenoCRSilva/pokemon-team-builder/cache"
 )
 
-type Client struct {
-	baseUrl string
-	cache   *cache.Cache
-	client  *http.Client
-}
-
 func NewClient(cacheInterval time.Duration) *Client {
 	return &Client{
 		baseUrl: "https://pokeapi.co/api/v2",

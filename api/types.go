@@ -1,5 +1,17 @@
 package api
 
+import (
+	"net/http"
+
+	"github.com/BrenoCRSilva/pokemon-team-builder/cache"
+)
+
+type Client struct {
+	baseUrl string
+	cache   *cache.Cache
+	client  *http.Client
+}
+
 type Pokemon struct {
 	Name      string           `json:"name"`
 	Abilities []PokemonAbility `json:"abilities"`

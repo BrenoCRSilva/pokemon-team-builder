@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"strconv"
 
+	"github.com/BrenoCRSilva/pokemon-team-builder/util"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -45,7 +46,7 @@ func (g *Game) DrawTitle(screen *ebiten.Image) {
 	tOpts.GeoM.Translate(605, 30)
 	tOpts.ColorScale.ScaleWithColor(color.RGBA{R: 255, G: 204, B: 0, A: 255})
 	screen.DrawImage(g.Title, op)
-	text.Draw(screen, "  Team Builder", g.FontFace, tOpts)
+	text.Draw(screen, "  Team Builder", g.Fonts.FontFace24, tOpts)
 }
 
 func (g *Game) drawCoverageScore(screen *ebiten.Image) {
@@ -57,8 +58,8 @@ func (g *Game) drawCoverageScore(screen *ebiten.Image) {
 	opts.ColorScale.ScaleWithColor(color.RGBA{255, 255, 255, 255})
 	opts2 := &text.DrawOptions{}
 	opts2.GeoM.Translate(float64(x)+40, 770)
-	text.Draw(screen, scoreText, g.FontFace16, opts)
-	text.Draw(screen, strconv.Itoa(int(percentage))+"%", g.FontFace30, opts2)
+	text.Draw(screen, scoreText, g.Fonts.FontFace16, opts)
+	text.Draw(screen, strconv.Itoa(int(percentage))+"%", g.Fonts.FontFace34, opts2)
 }
 
 func (g *Game) DrawSearchBarText(screen *ebiten.Image) {
@@ -69,7 +70,7 @@ func (g *Game) DrawSearchBarText(screen *ebiten.Image) {
 	opts := &text.DrawOptions{}
 	opts.GeoM.Translate(540, 80)
 	opts.ColorScale.ScaleWithColor(color.RGBA{0, 0, 0, 255})
-	text.Draw(screen, t, g.FontFace, opts)
+	text.Draw(screen, t, g.Fonts.FontFace24, opts)
 }
 
 func (g *Game) drawSprite(screen *ebiten.Image) {
@@ -90,18 +91,18 @@ func (g *Game) drawNotFound(screen *ebiten.Image) {
 	opts := &text.DrawOptions{}
 	opts.GeoM.Translate(g.ogX+100, g.ogY+100)
 	opts.ColorScale.ScaleWithColor(color.RGBA{255, 0, 0, 255})
-	text.Draw(screen, "Not found", g.FontFace30, opts)
+	text.Draw(screen, "Not found", g.Fonts.FontFace34, opts)
 }
 
 func (g *Game) drawSpriteName(screen *ebiten.Image) {
 	if g.sprite == nil {
 		return
 	}
-	name := caserString(g.CurrentPokemon.Name)
+	name := util.CaserString(g.CurrentPokemon.Name)
 	opts := &text.DrawOptions{}
 	opts.GeoM.Translate(g.ogX+320, g.ogY+70) // Adjust position as needed
 	opts.ColorScale.ScaleWithColor(color.RGBA{255, 255, 255, 255})
-	text.Draw(screen, name, g.FontFace30, opts)
+	text.Draw(screen, name, g.Fonts.FontFace34, opts)
 }
 
 func (g *Game) drawAbilities(screen *ebiten.Image) {
@@ -115,7 +116,7 @@ func (g *Game) drawAbilities(screen *ebiten.Image) {
 		}
 		opts := &text.DrawOptions{}
 		opts.GeoM.Translate(g.ogX+330, g.ogY+120+float64(i*30))
-		text.Draw(screen, caserString(ability.Ability.Name), g.FontFace16, opts)
+		text.Draw(screen, util.CaserString(ability.Ability.Name), g.Fonts.FontFace16, opts)
 	}
 }
 
@@ -127,17 +128,17 @@ func (g *Game) drawStats(screen *ebiten.Image) {
 	top30 := []int{96, 107, 95, 95, 92, 95}
 	titleOpts := &text.DrawOptions{}
 	titleOpts.GeoM.Translate(g.ogX+40+230, g.ogY+340-55)
-	text.Draw(screen, "Current", g.FontFace, titleOpts)
+	text.Draw(screen, "Current", g.Fonts.FontFace24, titleOpts)
 	for i, stat := range stats {
 		opts := &text.DrawOptions{}
 		opts.GeoM.Translate(g.ogX+40, g.ogY+340+float64(i*30))
-		text.Draw(screen, caserString(stat.Stat.Name), g.FontFace, opts)
+		text.Draw(screen, util.CaserString(stat.Stat.Name), g.Fonts.FontFace24, opts)
 
 		tOpts := &text.DrawOptions{}
 		tOpts.GeoM.Translate(g.ogX+290, g.ogY+340+float64(i*30))
-		tOpts.ColorScale.ScaleWithColor(statColor(stat.BaseStat, top30[i]))
+		tOpts.ColorScale.ScaleWithColor(util.ColorComparisonRG(stat.BaseStat, top30[i]))
 
-		text.Draw(screen, strconv.Itoa(stat.BaseStat), g.FontFace, tOpts)
+		text.Draw(screen, strconv.Itoa(stat.BaseStat), g.Fonts.FontFace24, tOpts)
 	}
 }
 
@@ -153,23 +154,12 @@ func (g *Game) drawTop30(screen *ebiten.Image) {
 
 	titleOpts := &text.DrawOptions{}
 	titleOpts.GeoM.Translate(baseX-15, baseY-55)
-	text.Draw(screen, "Top 30", g.FontFace, titleOpts)
+	text.Draw(screen, "Top 30", g.Fonts.FontFace24, titleOpts)
 
 	for i, val := range top30 {
 		opts := &text.DrawOptions{}
 		opts.GeoM.Translate(baseX, baseY+float64(i*30))
-		text.Draw(screen, strconv.Itoa(val), g.FontFace, opts)
-	}
-}
-
-func statColor(current, top30 int) color.Color {
-	switch {
-	case current > top30:
-		return color.RGBA{R: 96, G: 200, B: 96, A: 255}
-	case current < top30:
-		return color.RGBA{R: 220, G: 70, B: 70, A: 255}
-	default:
-		return color.RGBA{R: 255, G: 255, B: 255, A: 255}
+		text.Draw(screen, strconv.Itoa(val), g.Fonts.FontFace24, opts)
 	}
 }
 
@@ -259,7 +249,7 @@ func (g *Game) drawEffectivenessRect(
 	vector.StrokeRect(screen, x, y, TEXT_CELL_WIDTH, TEXT_CELL_HEIGHT, 1,
 		color.RGBA{0, 0, 0, 255}, false)
 
-	effectivenessText := g.formatFloat(effectivenessValue)
+	effectivenessText := util.FormatFloat(effectivenessValue)
 	textX := int(x) + (TEXT_CELL_WIDTH-len(effectivenessText)*6)/2
 	textY := int(y) + TEXT_CELL_HEIGHT/2 - 8
 
@@ -267,22 +257,7 @@ func (g *Game) drawEffectivenessRect(
 	options.GeoM.Translate(float64(textX), float64(textY))
 	options.ColorScale.ScaleWithColor(color.RGBA{255, 255, 255, 255})
 
-	text.Draw(screen, effectivenessText, g.FontFace12, options)
-}
-
-func (g *Game) getEffectivenessColor(value float64) color.RGBA {
-	switch {
-	case value >= 2.0:
-		return color.RGBA{50, 200, 50, 255}
-	case value == 1.0:
-		return color.RGBA{80, 80, 80, 255}
-	case value == -1.0:
-		return color.RGBA{80, 80, 80, 255}
-	case value <= -2.0:
-		return color.RGBA{200, 50, 50, 255}
-	default:
-		return color.RGBA{50, 50, 50, 255}
-	}
+	text.Draw(screen, effectivenessText, g.Fonts.FontFace12, options)
 }
 
 func (g *Game) drawTypeChart(screen *ebiten.Image) {
